@@ -20,7 +20,6 @@
 #include <string.h>
 
 /* socket is used to keep single instance */
-#include <sys/sysmacros.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -764,7 +763,6 @@ void show_socket_help()
     printf( "sort_first                      files|folders|mixed\n" );
     printf( "show_thumbnails                 1|true|yes|0|false|no\n" );
     printf( "large_icons                     1|true|yes|0|false|no\n" );
-    printf( "show_dirsize                    1|true|yes|0|false|no (aka Show Folder Sizes)\n" );
     printf( "statusbar_text                  %s\n", _("eg 'Current Status: Example'") );
     printf( "pathbar_text                    [TEXT [SELSTART [SELEND]]]\n" );
     printf( "current_dir                     %s\n", _("DIR            eg '/etc'") );
@@ -801,7 +799,6 @@ void show_socket_help()
     printf( "copy|move|link [--dir DIR] FILE|DIR... TARGET\n" );
     printf( "                                %s\n", _("Copy|Move|Link FILE(s) or DIR(s) to TARGET dir") );
     printf( "delete [--dir DIR] FILE|DIR...  %s\n", _("Recursively delete FILE(s) or DIR(s)" ) );
-    printf( "refresh [DIR...]                %s\n", _("Refresh tab or specified DIR(s)" ) );
     printf( "edit [--as-root] FILE           %s\n", _("Open FILE in user's or root's text editor") );
     printf( "web URL                         %s\n", _("Open URL in user's web browser") );
     printf( "mount DEVICE|URL                %s\n", _("Mount DEVICE or URL") );
@@ -980,7 +977,7 @@ GList* get_file_info_list( char** file_paths )
     for( file = file_paths; *file; ++file )
     {
         fi = vfs_file_info_new();
-        if( vfs_file_info_get( fi, *file, NULL, TRUE ) )
+        if( vfs_file_info_get( fi, *file, NULL ) )
             file_list = g_list_append( file_list, fi );
         else
             vfs_file_info_unref( fi );
@@ -1448,8 +1445,6 @@ int main ( int argc, char *argv[] )
         printf( "SNOTIFY " );
 #endif
         printf( "\n" );
-        printf("Modified by lowlevel <vinicio.valbuena89@gmail.com>");
-        printf( "\n" );
         return 0;
     }
     
@@ -1579,7 +1574,7 @@ void open_file( const char* path )
     char* app_name;
 
     file = vfs_file_info_new();
-    vfs_file_info_get( file, path, NULL, TRUE );
+    vfs_file_info_get( file, path, NULL );
     mime_type = vfs_file_info_get_mime_type( file );
     opened = FALSE;
     err = NULL;

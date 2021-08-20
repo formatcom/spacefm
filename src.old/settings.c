@@ -1,11 +1,11 @@
 /*
  * SpaceFM settings.c
- *
+ * 
  * Copyright (C) 2015 IgnorantGuru <ignorantguru@gmx.com>
  * Copyright (C) 2006 Hong Jen Yee (PCMan) <pcman.tw (AT) gmail.com>
- *
+ * 
  * License: See COPYING file
- *
+ * 
 */
 
 #ifdef HAVE_CONFIG_H
@@ -45,7 +45,7 @@
 #include "ptk-location-view.h"
 #include "exo-icon-chooser-dialog.h" /* for exo_icon_chooser_dialog_new */
 
-#define CONFIG_VERSION "40"   // 1.1.0
+#define CONFIG_VERSION "38"   // 1.0.6
 
 #define DEFAULT_TMP_DIR "/tmp"
 
@@ -56,7 +56,6 @@ AppSettings app_settings = {0};
 /* const gboolean singleInstance_default = TRUE; */
 const gboolean show_hidden_files_default = FALSE;
 const gboolean show_thumbnail_default = FALSE;
-const gboolean show_dirsize_default = TRUE;
 const int max_thumb_size_default = 8 << 20;
 const int big_icon_size_default = 48;
 const int max_icon_size = 512;
@@ -115,28 +114,6 @@ char* settings_user_tmp_dir = NULL;
 XSetContext* xset_context = NULL;
 XSet* book_icon_set_cached = NULL;
 
-// cache these for speed in event handlers
-XSet* evt_win_focus = NULL;
-XSet* evt_win_move = NULL;
-XSet* evt_win_click = NULL;
-XSet* evt_win_key = NULL;
-XSet* evt_win_close = NULL;
-XSet* evt_pnl_show = NULL;
-XSet* evt_pnl_focus = NULL;
-XSet* evt_pnl_sel = NULL;
-XSet* evt_tab_new = NULL;
-XSet* evt_tab_chdir = NULL;
-XSet* evt_tab_focus = NULL;
-XSet* evt_tab_close = NULL;
-XSet* evt_device = NULL;
-
-// instance-wide command history
-GList* xset_cmd_history = NULL;
-
-// These will contain the su and gsu settings from /etc/spacefm/spacefm.conf
-char* settings_terminal_su = NULL;
-char* settings_graphical_su = NULL;
-
 // delayed session saving
 guint xset_autosave_timer = 0;
 gboolean xset_autosave_request = FALSE;
@@ -173,7 +150,7 @@ const char* icon_desc = N_("Enter an icon name, icon file path, or stock item na
 const char* enter_menu_name = N_("Enter item name:\n\nPrecede a character with an underscore (_) to underline that character as a shortcut key if desired.");
 const char* enter_menu_name_new = N_("Enter new item name:\n\nPrecede a character with an underscore (_) to underline that character as a shortcut key if desired.\n\nTIP: To change this item later, right-click on the item to open the Design Menu.");
 
-static const char* builtin_tool_name[] = {  // must match XSET_TOOL_ enum settings.h
+static const char* builtin_tool_name[] = {  // must match XSET_TOOL_ enum
     NULL,
     NULL,
     N_("Show Devices"),
@@ -191,8 +168,7 @@ static const char* builtin_tool_name[] = {  // must match XSET_TOOL_ enum settin
     N_("New Tab Here"),
     N_("Show Hidden"),
     N_("Show Thumbnails"),
-    N_("Large Icons"),
-    N_("Show Folder Sizes")
+    N_("Large Icons")
 };
 
 static const char* builtin_tool_icon[] = {  // must match XSET_TOOL_ enum
@@ -213,8 +189,7 @@ static const char* builtin_tool_icon[] = {  // must match XSET_TOOL_ enum
     "gtk-add",
     "gtk-apply",
     GTK_STOCK_SELECT_COLOR,
-    GTK_STOCK_ZOOM_IN,
-    GTK_STOCK_INFO
+    GTK_STOCK_ZOOM_IN
 };
 
 static const char* builtin_tool_shared_key[] = {  // must match XSET_TOOL_ enum
@@ -235,8 +210,7 @@ static const char* builtin_tool_shared_key[] = {  // must match XSET_TOOL_ enum
     "tab_new_here",
     "panel1_show_hidden",
     "view_thumb",
-    "panel1_list_large",
-    "view_dirsize"
+    "panel1_list_large"
 };
 
 static void parse_general_settings( char* line )
@@ -278,12 +252,10 @@ static void parse_general_settings( char* line )
     else if ( 0 == strcmp( name, "tool_icon_size" ) )
     {
         app_settings.tool_icon_size = atoi( value );
-        if( app_settings.tool_icon_size < 0 ||
+        if( app_settings.tool_icon_size < 0 || 
                             app_settings.tool_icon_size > GTK_ICON_SIZE_DIALOG )
             app_settings.tool_icon_size = tool_icon_size_default;
     }
-    else if ( 0 == strcmp( name, "show_dirsize" ) )
-        app_settings.show_dirsize = atoi( value );
     /* FIXME: temporarily disable trash since it's not finished */
 #if 0
     else if ( 0 == strcmp( name, "use_trash_can" ) )
@@ -464,7 +436,7 @@ static void parse_conf( const char* etc_path, char* line )
     *sep = '\0';
     char* sname = g_strstrip( name );
     char* svalue = g_strdup( g_strstrip( value ) );
-
+    
     if ( !( sname && sname[0] && svalue && svalue[0] ) )
     {}
     else if ( strpbrk( svalue, " $%\\()&#|:;?<>{}[]*\"'" ) )
@@ -520,11 +492,11 @@ void load_conf()
         fclose( file );
     }
     g_free( etc_path );
-
+    
     // set tmp dir
     if ( !settings_tmp_dir )
         settings_tmp_dir = g_strdup( DEFAULT_TMP_DIR );
-}
+}        
 
 void swap_menu_label( const char* set_name, const char* old_name,
                                                         const char* new_name )
@@ -548,7 +520,7 @@ void move_attached_to_builtin( const char* removed_name, const char* move_to_nam
     /* For upgrades only: A built-in menu item (removed_name) has been removed,
      * so move custom menu items attached to the removed item to another item.
      * Leave removed item data intact in case of downgrade. */
-
+    
     XSet* set_to = xset_is( move_to_name );
     if ( !set_to )
     {
@@ -556,7 +528,7 @@ void move_attached_to_builtin( const char* removed_name, const char* move_to_nam
                                                             move_to_name );
         return;
     }
-
+    
     GList* l;
     XSet* set_move;
     XSet* set_to_next;
@@ -569,14 +541,14 @@ void move_attached_to_builtin( const char* removed_name, const char* move_to_nam
             set_move = l->data;
             if ( set_move->lock )  // failsafe
                 return;
-
+            
             while ( set_move )
             {
                 xset_custom_remove( set_move );
-
+                
                 g_free( set_move->prev );
                 set_move->prev = g_strdup( set_to->name );
-
+                
                 if ( set_move->next )
                 {
                     set_move_next = xset_get( set_move->next );
@@ -587,7 +559,7 @@ void move_attached_to_builtin( const char* removed_name, const char* move_to_nam
                     set_move_next = NULL;
                 g_free( set_move->next );
                 set_move->next = g_strdup( set_to->next );
-
+                
                 if ( set_to->next )
                 {
                     set_to_next = xset_get( set_to->next );
@@ -597,7 +569,7 @@ void move_attached_to_builtin( const char* removed_name, const char* move_to_nam
                 }
                 g_free( set_to->next );
                 set_to->next = g_strdup( set_move->name );
-
+                
                 if ( set_to->tool )
                 {
                     if ( set_move->tool > XSET_TOOL_CUSTOM )
@@ -606,7 +578,7 @@ void move_attached_to_builtin( const char* removed_name, const char* move_to_nam
                 }
                 else
                     set_move->tool = XSET_TOOL_NOT;
-
+                
                 set_to = set_move;
                 set_move = set_move_next;
             }
@@ -624,7 +596,7 @@ void load_settings( char* config_dir )
     SettingsParseFunc func = NULL;
     XSet* set;
     char* str;
-
+    
     xset_cmd_history = NULL;
     app_settings.load_saved_tabs = TRUE;
     if ( config_dir )
@@ -661,7 +633,6 @@ void load_settings( char* config_dir )
     app_settings.big_icon_size = big_icon_size_default;
     app_settings.small_icon_size = small_icon_size_default;
     app_settings.tool_icon_size = tool_icon_size_default;
-    app_settings.show_dirsize = show_dirsize_default;
     app_settings.use_trash_can = use_trash_can_default;
     //app_settings.view_mode = view_mode_default;
     //app_settings.open_bookmark_method = open_bookmark_method_default;
@@ -1748,8 +1719,6 @@ char* save_settings( gpointer main_window_ptr )
             fprintf( file, "small_icon_size=%d\n", app_settings.small_icon_size );
         if ( app_settings.tool_icon_size != tool_icon_size_default )
             fprintf( file, "tool_icon_size=%d\n", app_settings.tool_icon_size );
-        if ( app_settings.show_dirsize != show_dirsize_default )
-            fprintf( file, "show_dirsize=%d\n", !!app_settings.show_dirsize );
         /* FIXME: temporarily disable trash since it's not finished */
 #if 0
         if ( app_settings.use_trash_can != use_trash_can_default )
@@ -3572,7 +3541,6 @@ XSetContext* xset_context_new()
     {
         xset_context = g_slice_new0( XSetContext );
         xset_context->valid = FALSE;
-        xset_context->update_time = 0;
         for ( i = 0; i < G_N_ELEMENTS( xset_context->var ); i++ )
             xset_context->var[i] = NULL;
     }
@@ -3587,84 +3555,6 @@ XSetContext* xset_context_new()
         }        
     }
     return xset_context;
-}
-
-XSetContext* xset_context_reuse()
-{
-    if ( !xset_context )
-        return xset_context_new();
-    else
-        return xset_context;
-}
-
-void xset_activate_on_context( XSet* set )
-{   /* activate custom command or built-in callback in set based on context,
-     * eg for keypress where context was not tested */
-    XSet* mset;
-    XSet* rset;
-    XSetContext* context;
-    int context_action;
-
-    // is not activatable custom command?
-    if ( !( !set->lock && set->menu_style < XSET_MENU_SUBMENU ) )
-    {
-        // not a custom command, so context should already have been tested
-        // so activate without getting context
-        xset_menu_cb( NULL, set );
-        return;
-    }
-    
-    // examine set
-    if ( set->plugin )
-    {
-        // set is plugin
-        mset = xset_get_plugin_mirror( set );
-        rset = set;
-    }
-    else if ( !set->lock && set->desc && !strcmp( set->desc, "@plugin@mirror@" )
-                                                            && set->shared_key )
-    {
-        // set is plugin mirror
-        mset = set;
-        rset = xset_get( set->shared_key );
-        rset->browser = set->browser;
-        rset->desktop = set->desktop;
-    }
-    else
-    {
-        mset = set;
-        rset = set;
-    }
-    
-    // get valid context
-    if ( mset->context )
-    {
-        context = xset_context_new();
-        if ( set->browser )
-            main_context_fill( set->browser, context );
-#ifdef DESKTOP_INTEGRATION
-        else if ( set->desktop )
-            desktop_context_fill( set->desktop, context );
-#endif
-        else
-        {
-            g_debug( "xset_activate_on_context browser or desktop is NULL" );
-            return;
-        }
-        if ( !context->valid )
-        {
-            g_debug( "xset_activate_on_context context not valid" );
-            return;
-        }
-        
-        // test context
-        context_action = xset_context_test( context, mset->context, FALSE );
-        if ( context_action == CONTEXT_HIDE ||
-                                    context_action == CONTEXT_DISABLE )
-            return;
-    }
-    // activate custom command
-    xset_menu_cb( NULL, set );
 }
 
 const char* icon_stock_to_id( const char* name )
@@ -8096,13 +7986,18 @@ gboolean xset_design_menu_keypress( GtkWidget* widget, GdkEventKey* event,
     return FALSE;
 }
 
+void xset_design_destroy( GtkWidget* item, GtkWidget* design_menu )
+{
+//printf( "xset_design_destroy\n");
+    // close design_menu if menu deactivated
+    gtk_widget_set_sensitive( item, TRUE );
+    gtk_menu_shell_deactivate( GTK_MENU_SHELL( design_menu ) );
+}
+
 void on_menu_hide(GtkWidget *widget, GtkWidget* design_menu )
 {
     gtk_widget_set_sensitive( widget, TRUE );
     gtk_menu_shell_deactivate( GTK_MENU_SHELL( design_menu ) );
-    // remove hide signal callback from original menu
-    g_signal_handlers_disconnect_by_func( widget, G_CALLBACK( on_menu_hide ),
-                                                                design_menu );
 }
 
 static void set_check_menu_item_block( GtkWidget* item )
@@ -9770,9 +9665,6 @@ void xset_builtin_tool_activate( char tool_type, XSet* set,
             on_popup_list_large( NULL, file_browser );
         }
         break;
-    case XSET_TOOL_SHOW_DIRSIZE:
-        main_window_toggle_show_dirsize();
-        break;
     default:
         g_warning( "xset_builtin_tool_activate invalid tool_type" );
     }
@@ -10064,7 +9956,6 @@ GtkWidget* xset_add_toolitem( GtkWidget* parent, PtkFileBrowser* file_browser,
         case XSET_TOOL_TREE:
         case XSET_TOOL_SHOW_HIDDEN:
         case XSET_TOOL_SHOW_THUMB:
-        case XSET_TOOL_SHOW_DIRSIZE:
         case XSET_TOOL_LARGE_ICONS:
             menu_style = XSET_MENU_CHECK;
             break;
@@ -11671,9 +11562,6 @@ void xset_defaults()
     set->b = XSET_B_TRUE;
 
     set = xset_set( "view_thumb", "lbl", _("_Thumbnails (global)") );  // in View|Panel View|Style
-    set->menu_style = XSET_MENU_CHECK;
-
-    set = xset_set( "view_dirsize", "lbl", _("Folder _Sizes (global)") );  // in View|Panel View|Style
     set->menu_style = XSET_MENU_CHECK;
 
     // Plugins

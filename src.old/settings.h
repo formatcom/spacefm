@@ -12,7 +12,6 @@
 #define _SETTINGS_H_
 
 #include <glib.h>
-#include <time.h>
 #include <gdk/gdk.h>
 #include <gtk/gtk.h>
 #include "ptk-file-browser.h"
@@ -33,14 +32,6 @@ typedef enum {
     WPM_TRANSPARENT
 }WallpaperMode;
 
-typedef enum {
-    DRAG_PREF_AUTO,
-    DRAG_PREF_COPY,
-    DRAG_PREF_MOVE,
-    DRAG_PREF_LINK,
-    DRAG_PREF_DISABLED
-}DragPreference;
-
 typedef struct
 {
     /* General Settings */
@@ -50,7 +41,6 @@ typedef struct
     //int side_pane_mode;
     gboolean show_thumbnail;
     int max_thumb_size;
-    gboolean show_dirsize;
 
     int big_icon_size;
     int small_icon_size;
@@ -130,7 +120,7 @@ const char* xset_get_user_tmp_dir();
 ///////////////////////////////////////////////////////////////////////////////
 //MOD extra settings below
 
-extern GList* xsets;
+GList* xsets;
 
 enum {
     XSET_B_UNSET,
@@ -167,19 +157,8 @@ enum {   // do not renumber - these values are saved in session files
     XSET_MENU_SEP
 };
 
-enum {
-/* DO NOT REORDER XSET_TOOL enum - these values are saved in session files.
- * If you add a new toolbar item:
- *      add an XSET_TOOL constant below
- *      settings.c:         builtin_tool_name enum
- *                          builtin_tool_icon enum
- *                          builtin_tool_shared_key enum
- *                          xset_builtin_tool_activate()
- *                          xset_add_toolitem()
- *      ptk-file-browser.c: ptk_file_browser_add_toolbar_widget()
- *                          ptk_file_browser_update_toolbar_widgets()
- *      ptk-file-browser.h: increase size of _PtkFileBrowser.toolbar_widgets[]
- */
+enum {   // do not reorder - these values are saved in session files
+    // also update builtin_tool_name builtin_tool_icon in settings.c
     XSET_TOOL_NOT,
     XSET_TOOL_CUSTOM,
     XSET_TOOL_DEVICES,
@@ -198,8 +177,7 @@ enum {
     XSET_TOOL_SHOW_HIDDEN,
     XSET_TOOL_SHOW_THUMB,
     XSET_TOOL_LARGE_ICONS,
-    XSET_TOOL_SHOW_DIRSIZE,
-    XSET_TOOL_INVALID    // keep this always last - add new just before INVALID
+    XSET_TOOL_INVALID      // keep this always last
 };
 
 enum {
@@ -300,7 +278,7 @@ typedef struct
     char* context;
     char tool;              // 0=not 1=true 2=false
     gboolean lock;          // not saved, default true
-
+    
     // Custom Command ( !lock )
     char* prev;
     char* parent;
@@ -323,7 +301,7 @@ typedef struct
     gboolean plugin_top;
     char* plug_name;
     char* plug_dir;
-
+    
 } XSet;
 
 typedef struct
@@ -333,22 +311,22 @@ typedef struct
 } XMenuItem;
 
 // cache these for speed in event handlers
-extern XSet* evt_win_focus;
-extern XSet* evt_win_move;
-extern XSet* evt_win_click;
-extern XSet* evt_win_key;
-extern XSet* evt_win_close;
-extern XSet* evt_pnl_show;
-extern XSet* evt_pnl_focus;
-extern XSet* evt_pnl_sel;
-extern XSet* evt_tab_new;
-extern XSet* evt_tab_chdir;
-extern XSet* evt_tab_focus;
-extern XSet* evt_tab_close;
-extern XSet* evt_device;
+XSet* evt_win_focus;
+XSet* evt_win_move;
+XSet* evt_win_click;
+XSet* evt_win_key;
+XSet* evt_win_close;
+XSet* evt_pnl_show;
+XSet* evt_pnl_focus;
+XSet* evt_pnl_sel;
+XSet* evt_tab_new;
+XSet* evt_tab_chdir;
+XSet* evt_tab_focus;
+XSet* evt_tab_close;
+XSet* evt_device;
 
 // instance-wide command history
-extern GList* xset_cmd_history;
+GList* xset_cmd_history;
 
 static const char* terminal_programs[] =  //for pref-dialog.c
 {
@@ -396,13 +374,12 @@ static const char* gsu_commands[] = // order and contents must match prefdlg.ui
 };
 
 // These will contain the su and gsu settings from /etc/spacefm/spacefm.conf
-extern char* settings_terminal_su;
-extern char* settings_graphical_su;
+char* settings_terminal_su;
+char* settings_graphical_su;
 
 typedef struct
 {
     gboolean valid;
-    time_t update_time;
     char* var[40];
 } XSetContext;
 
@@ -448,8 +425,6 @@ XSet* xset_set_b_panel_mode( int panel, const char* name, char mode,
                                                             gboolean bval );
 
 XSetContext* xset_context_new();
-XSetContext* xset_context_reuse();
-void xset_activate_on_context( XSet* set );
 XSet* xset_get_plugin_mirror( XSet* set );
 void write_src_functions( FILE* file );
 char* xset_custom_get_script( XSet* set, gboolean create );
